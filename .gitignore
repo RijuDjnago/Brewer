@@ -3,6 +3,8 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+usermanagement/migrations/
+static
 # C extensions
 *.so
 
