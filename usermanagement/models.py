@@ -112,4 +112,4 @@ class OTP(models.Model):
 
     def is_valid(self):
         
-        return (timezone.now() - self.created_at).seconds < 300
+        return (timezone.now() - self.created_at).seconds < 3000

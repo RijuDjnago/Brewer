@@ -20,6 +20,12 @@ class RegisterSerializer(serializers.Serializer):
     phone_number = serializers.CharField()
 
     def create(self, validated_data):
+        phone_number = validated_data['phone_number']
+        
+        if User.objects.filter(phone_number=phone_number).exists():
+            phone_number = User.objects.get(phone_number=phone_number).phone_number
+            raise serializers.ValidationError({"message": "Phone number already exists.", "phone_number":phone_number})
+        
         user = User.objects.create_user(
             first_name=validated_data['first_name'],
             last_name=validated_data['last_name'],
@@ -30,3 +36,4 @@ class RegisterSerializer(serializers.Serializer):
         print(user.phone_number)
         send_sms(user.phone_number, f"Your OTP code is {otp_code}")
         return user
+
