@@ -3,6 +3,7 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, Permis
 import random
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+import uuid
 
 # Create your models here.
 
@@ -72,7 +73,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     username = models.CharField(max_length=50, unique=True, help_text="Username")
     role = models.ManyToManyField(Role, blank=True)
     is_active = models.BooleanField(default=True)
-    is_verified = models.BooleanField(default=True)
+    is_verified = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     is_staff = models.BooleanField(default=False)
@@ -102,6 +103,7 @@ class OTP(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     otp = models.CharField(max_length=6)
     created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
 
     def generate_otp(self):
         self.otp = f"{random.randint(100000, 999999)}"

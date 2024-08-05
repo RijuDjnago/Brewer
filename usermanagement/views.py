@@ -16,8 +16,12 @@ class RegisterView(APIView):
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
-            return Response({"message": "User created, OTP sent"}, status=status.HTTP_201_CREATED)
+            user = serializer.save()
+            return Response({
+                "phone_number": user.phone_number,
+                "message": "User created, OTP sent",
+            }, status=status.HTTP_201_CREATED)
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class OTPVerifyView(APIView):
@@ -26,12 +30,17 @@ class OTPVerifyView(APIView):
     def post(self, request):
         serializer = OTPSerializer(data=request.data)
         if serializer.is_valid():
+
             phone_number = serializer.validated_data['phone_number']
             otp = serializer.validated_data['otp']
             try:
                 user = User.objects.get(phone_number=phone_number)
                 otp_instance = OTP.objects.get(user=user, otp=otp)
                 if otp_instance.is_valid():
+                    user.is_verified = True
+                    user.save()
+                    otp_instance.is_active = False
+                    otp_instance.save()
                     refresh = RefreshToken.for_user(user)
                     return Response({
                         'user_id': user.id,
