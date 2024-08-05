@@ -27,5 +27,6 @@ class RegisterSerializer(serializers.Serializer):
         )
         otp = OTP.objects.create(user=user)
         otp_code = otp.generate_otp()
+        print(user.phone_number)
         send_sms(user.phone_number, f"Your OTP code is {otp_code}")
         return user
