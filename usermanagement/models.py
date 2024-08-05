@@ -34,7 +34,10 @@ class UserManager(BaseUserManager):
             phone_number=phone_number,
         )
         user.username = self.generate_username(first_name)
-        user.set_unusable_password()
+        if password:
+            user.set_password(password)
+        else:
+            user.set_unusable_password()
         user.save(using=self._db)
         return user
 
@@ -72,6 +75,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_verified = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    is_staff = models.BooleanField(default=False)
 
     objects = UserManager()
 
