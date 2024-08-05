@@ -1,20 +1,24 @@
-from django.contrib.auth.backends import BaseBackend
+from django.contrib.auth.backends import ModelBackend
 from django.contrib.auth import get_user_model
 from .models import OTP
 from django.db.models import Q
 
 User = get_user_model()
-
-class OTPBackend(BaseBackend):
-    def authenticate(self, request, username=None, otp=None):
+class OTPBackend(ModelBackend):
+    def authenticate(self, request, phone_number=None, otp=None, password=None, **kwargs):
         try:
-            user = User.objects.get(Q(username=username) | Q(phone_number=username))
+            user = User.objects.get(phone_number=phone_number)
+            if otp:
+                otp_record = OTP.objects.filter(user=user).latest('created_at')
+                if otp_record and otp_record.otp == otp and otp_record.is_valid():
+                    return user
+            elif password:
+                if user.check_password(password):
+                    return user
         except User.DoesNotExist:
             return None
-
-        otp_instance = OTP.objects.filter(user=user, otp=otp).order_by('-created_at').first()
-        if otp_instance and otp_instance.is_valid():
-            return user
+        except OTP.DoesNotExist:
+            return None
         return None
 
     def get_user(self, user_id):
