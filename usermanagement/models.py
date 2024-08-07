@@ -96,20 +96,68 @@ class User(AbstractBaseUser, PermissionsMixin):
     def get_short_name(self):
         return self.first_name
     
+    def get_role_perm(self):
+        "returns the custom permissions asssigned to the role"
+        role_perm = []
+        for role in self.role.all():
+            for permission in role.permissions.values_list('display'):
+                role_perm.append(permission[0])
+                #print(role_perm)
+        return role_perm
+
+    def get_role(self):
+        user_roles_object = self.role.all()
+        role_list = [role_data.role for role_data in user_roles_object]
+
+        return role_list
+    
 
 User = get_user_model()
 
 class OTP(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_otp')
     otp = models.CharField(max_length=6)
     created_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
 
     def generate_otp(self):
+        OTP.objects.filter(user=self.user, is_active=True).update(is_active=False)
+        
+        # Generate a new OTP
         self.otp = f"{random.randint(100000, 999999)}"
+        self.is_active = True
+        self.created_at = timezone.now()  # Update the created_at time
         self.save()
         return self.otp
 
     def is_valid(self):
-        
-        return (timezone.now() - self.created_at).seconds < 300
+        print(timezone.now(), self.created_at)
+        return (timezone.now() - self.created_at).seconds < 3000
+
+
+GENDER_CHOICES = (
+    ('Male', 'Male'),
+    ('Female', 'Female'),
+    ('Other', 'Other'),
+)
+
+AGE_GROUP = (
+    ('INF', 'Infants (0-2 years)'),
+    ('TOD', 'Toddlers (2-4 years)'),
+    ('CHI', 'Children (5-12 years)'),
+    ('TEEN', 'Teenagers (13-19 years)'),
+    ('YAD', 'Young Adults (20-35 years)'),
+    ('MAD', 'Middle-Aged Adults (36-55 years)'),
+    ('SEN', 'Seniors (56-75 years)'),
+    ('ELD', 'Elderly (76+ years)'),
+)
+
+class UserProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='user_profile')
+    gender = models.CharField(max_length=6, choices=GENDER_CHOICES, null=True, blank=True)
+    image = models.ImageField(upload_to='user_images/', null=True, blank=True)
+    age = models.CharField(max_length=5, choices=AGE_GROUP, default='YAD')
+
+    def __str__(self):
+        return f'{self.user.username} | {self.age} | {self.gender}'
+    
