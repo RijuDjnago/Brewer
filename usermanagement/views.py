@@ -22,7 +22,7 @@ class RegisterView(APIView):
                 "message": "User created, OTP sent",
             }, status=status.HTTP_201_CREATED)
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'message':serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
 class OTPVerifyView(APIView):
     permission_classes = [AllowAny]
@@ -43,13 +43,33 @@ class OTPVerifyView(APIView):
                     otp_instance.save()
                     refresh = RefreshToken.for_user(user)
                     return Response({
+                        'message':'OTP verfied successfully.',                        
                         'user_id': user.id,
                         'refresh': str(refresh),
                         'access': str(refresh.access_token),
-                    })
+                    }, status=status.HTTP_200_OK)
                 else:
-                    return Response({"error": "OTP expired"}, status=status.HTTP_400_BAD_REQUEST)
+                    return Response({"message": "OTP expired"}, status=status.HTTP_400_BAD_REQUEST)
             except (User.DoesNotExist, OTP.DoesNotExist):
-                return Response({"error": "Invalid OTP or phone number"}, status=status.HTTP_400_BAD_REQUEST)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"message": "Invalid OTP or phone number"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"message":serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
+
+class SendOTPView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        phone_number = request.data.get('phone_number')
+        if not phone_number:
+            return Response({"message": "Phone number is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(phone_number=phone_number)
+        except User.DoesNotExist:
+            return Response({"message": "User with this phone number does not exist"}, status=status.HTTP_400_BAD_REQUEST)
+
+        otp_instance, created = OTP.objects.get_or_create(user=user)
+        otp_code = otp_instance.generate_otp()  # Generate a new OTP
+        send_sms(user.phone_number, f"Your OTP code is {otp_code}")
+
+        return Response({"message": "OTP sent", 'phone_number':user.phone_number}, status=status.HTTP_200_OK)
