@@ -1,7 +1,8 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import OTP
+from .models import *
 from .helpers import send_sms
+from rest_framework import status
 
 User = get_user_model()
 
@@ -24,13 +25,20 @@ class RegisterSerializer(serializers.Serializer):
         
         if User.objects.filter(phone_number=phone_number).exists():
             phone_number = User.objects.get(phone_number=phone_number).phone_number
-            raise serializers.ValidationError({"message": "Phone number already exists.", "phone_number":phone_number})
-        
+            raise serializers.ValidationError({"message": "Phone number already exists.", "phone_number":phone_number, "status":status.HTTP_400_BAD_REQUEST})
+        role = Role.objects.filter(role='Customer').first()
         user = User.objects.create_user(
             first_name=validated_data['first_name'],
             last_name=validated_data['last_name'],
             phone_number=validated_data['phone_number']
         )
+        if role:
+            user.role.add(role)
+        else:
+            raise serializers.ValidationError({
+                "message": "Customer role does not exist.",
+                "status": status.HTTP_400_BAD_REQUEST
+            })
         otp = OTP.objects.create(user=user)
         otp_code = otp.generate_otp()
         print(user.phone_number)
