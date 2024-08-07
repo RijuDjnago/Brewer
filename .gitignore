@@ -44,7 +44,7 @@ out/
 
 # JIRA plugin
 atlassian-ide-plugin.xml
-
+.env
 # Python # 
 *.py[cod] 
 *$py.class 
